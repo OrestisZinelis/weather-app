@@ -1,1 +1,1 @@
-export type SelectedDate = 'now' | 'today' | Date | null
+export type SelectedPeriod = 'now' | 'today' | Date | null

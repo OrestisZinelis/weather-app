@@ -4,13 +4,13 @@
       <Card>
         <template #content>
           <div v-if="weather && !showSpinnerWeather" class="flex flex-col gap-10 pb-4">
-            <ForecastSelector :selected-date="selectedDate" @select-date="handleSelectDate" />
+            <PeriodSelector :selectedPeriod="selectedPeriod" @select-period="handleSelectPeriod" />
             <CurrentWeather
-              :temperature="normalizedWeatherData?.temperature.detail.value"
-              :description="weather?.weather_description"
-              :unit="weather?.temperature.detail?.unit"
-              :weatherCode="weather?.weather_code"
-              :is_day="weather?.is_day"
+              :temperature="weather.temperature.detail.value"
+              :description="weather.weather_description"
+              :unit="weather.temperature.detail?.unit"
+              :weatherCode="weather.weather_code"
+              :is_day="weather.is_day"
             />
           </div>
 
@@ -32,11 +32,11 @@
         </template>
       </Card>
     </div>
-    <Card v-if="forecast">
+    <Card>
       <template #content>
         <TemperatureChart
-          v-if="normalizedForecastData && !showSpinnerTemperatureForecast"
-          :data="normalizedForecastData"
+          v-if="weekTemperatures && !showSpinnerTemperatureForecast"
+          :data="weekTemperatures"
         />
 
         <div v-else class="flex justify-center">
@@ -51,18 +51,18 @@
 import { ref, computed, onMounted } from 'vue'
 import dayjs from 'dayjs'
 
-import { getCurrentWeather, getDailyWeather, getTemperatureForcast } from '@/services/weather.api'
+import { getCurrentWeather, getDailyWeather, getWeekTemperature } from '@/services/weather.api'
 
 import { useDebouncedLoading } from '@/composables/useDebouncedLoading'
-import { customRound } from '@/helpers/number.helpers'
+
 import { locations } from '@/constants/locations'
 
-import type { Weather, WeatherDetail, TemperatureForecast } from '@/types/weather.types'
-import type { SelectedDate } from '@/types/selectedDate.types'
+import type { Weather, WeatherDetail, WeekTemperatures } from '@/types/weather.types'
+import type { SelectedPeriod } from '@/types/selectedDate.types'
 
 import Card from 'primevue/card'
 import CurrentWeather from '@/components/CurrentWeather.vue'
-import ForecastSelector from '@/components/ForecastSelector.vue'
+import PeriodSelector from '@/components/PeriodSelector.vue'
 import WeatherDetails from '@/components/WeatherDetails.vue'
 import TemperatureChart from '@/components/TemperatureChart.vue'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -84,15 +84,15 @@ const {
   stopLoading: stopLoadingTemperatureForecast,
 } = useDebouncedLoading(300)
 
-const selectedDate = ref<SelectedDate>('now')
+const selectedPeriod = ref<SelectedPeriod>('now')
 const weather = ref<Weather | null>(null)
-const forecast = ref<TemperatureForecast | null>(null)
+const weekTemperatures = ref<WeekTemperatures | null>(null)
 
 const weatherDetailsToShow = computed<WeatherDetail[]>(() => {
   if (!weather.value) return []
 
   return [
-    { id: 'feels_like', text: 'Feels Like', detail: normalizedWeatherData.value.feels_like.detail },
+    { id: 'feels_like', text: 'Feels Like', detail: weather.value.feels_like.detail },
     { id: 'wind', text: 'Wind', detail: weather.value.wind_speed.detail },
     { id: 'wind_gust', text: 'Wind Gust', detail: weather.value.wind_gust.detail },
     { id: 'wind_deg', text: 'Wind Deg', detail: weather.value.wind_direction.detail },
@@ -101,46 +101,20 @@ const weatherDetailsToShow = computed<WeatherDetail[]>(() => {
   ]
 })
 
-const normalizedForecastData = computed(() => ({
-  dates: forecast.value?.dates.map((date) => dayjs(date).format('DD/MM')) ?? [],
-  temperatures: forecast.value?.temperatures
-    ? {
-        values: forecast.value.temperatures.values.map((value) => customRound(value)),
-        unit: forecast.value.temperatures.unit,
-      }
-    : { values: [], unit: '' },
-}))
+const handleSelectPeriod = (period: SelectedPeriod) => {
+  if (!period) return
+  selectedPeriod.value = period
 
-const normalizedWeatherData = computed(() => ({
-  ...weather.value,
-  temperature: {
-    detail: {
-      unit: weather.value?.temperature.detail?.unit ?? '',
-      value: customRound(weather.value?.temperature.detail?.value ?? 0),
-    },
-  },
-  feels_like: {
-    detail: {
-      unit: weather.value?.feels_like.detail?.unit ?? '',
-      value: customRound(weather.value?.feels_like.detail?.value ?? 0),
-    },
-  },
-}))
-
-const handleSelectDate = (date: SelectedDate) => {
-  if (!date) return
-  selectedDate.value = date
-
-  let formattedDate
-  if (date === 'now') {
-    formattedDate = undefined
-  } else if (date === 'today') {
-    formattedDate = dayjs().format('YYYY-MM-DD')
+  let date: string | undefined
+  if (period === 'now') {
+    date = undefined
+  } else if (period === 'today') {
+    date = dayjs().format('YYYY-MM-DD')
   } else {
-    formattedDate = dayjs(date).format('YYYY-MM-DD')
+    date = dayjs(period).format('YYYY-MM-DD')
   }
 
-  fetchWeather(formattedDate)
+  fetchWeather(date)
 }
 
 const fetchWeather = async (date?: string) => {
@@ -167,14 +141,14 @@ const fetchWeather = async (date?: string) => {
 const fetchTemperatureForecast = async () => {
   startLoadingTemperatureForecast()
   try {
-    const data = await getTemperatureForcast({
+    const data = await getWeekTemperature({
       latitude: locations.thessaloniki.latitude,
       longitude: locations.thessaloniki.longitude,
     })
 
-    forecast.value = data
+    weekTemperatures.value = data
   } catch (error) {
-    console.error('Failed to fetch weather:', error)
+    console.error('Failed to fetch 7days temperature forecast:', error)
   } finally {
     stopLoadingTemperatureForecast()
   }

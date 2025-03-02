@@ -1,3 +1,2 @@
-export const customRound = (value: number) => {
-  return value % 1 >= 0.45 ? Math.ceil(value) : Math.floor(value)
-}
+export const getAvg = (numArr: number[]) =>
+  numArr.reduce((sum: number, val: number) => sum + val, 0) / numArr.length

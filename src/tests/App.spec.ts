@@ -93,7 +93,7 @@ describe('AppView', () => {
 
     vi.spyOn(weatherAPI, 'getCurrentWeather').mockResolvedValue(mockWeatherData)
     vi.spyOn(weatherAPI, 'getDailyWeather').mockResolvedValue(mockWeatherData)
-    vi.spyOn(weatherAPI, 'getTemperatureForcast').mockResolvedValue(mockForecastData)
+    vi.spyOn(weatherAPI, 'getWeekTemperature').mockResolvedValue(mockForecastData)
   })
 
   it('should fetch weather data on mount', async () => {
@@ -113,13 +113,13 @@ describe('AppView', () => {
     await flushPromises()
 
     expect(weatherAPI.getCurrentWeather).toHaveBeenCalledTimes(1)
-    expect(weatherAPI.getTemperatureForcast).toHaveBeenCalledTimes(1)
+    expect(weatherAPI.getWeekTemperature).toHaveBeenCalledTimes(1)
   })
 
   it('should handle API errors gracefully', async () => {
     // Make API calls throw errors
     vi.spyOn(weatherAPI, 'getCurrentWeather').mockRejectedValue(new Error('API error'))
-    vi.spyOn(weatherAPI, 'getTemperatureForcast').mockRejectedValue(new Error('API error'))
+    vi.spyOn(weatherAPI, 'getWeekTemperature').mockRejectedValue(new Error('API error'))
 
     // Mock console.error to avoid polluting test output
     const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => {})

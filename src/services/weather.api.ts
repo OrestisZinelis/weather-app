@@ -1,11 +1,12 @@
 import axios from 'axios'
-import type {
-  Weather,
-  GetCurrentWeatherParams,
-  GetDailyWeatherParams,
-  GetTemperatureForecastParams,
-  TemperatureForecast,
-} from '@/types/weather.types'
+import dayjs from 'dayjs'
+import { getAvg } from '@/helpers/number.helpers'
+import type { WeekRequestParams, WeekResponse } from '@/types/week.types'
+import type { DailyRequestParams, DailyResponse, DailyValues } from '@/types/daily.types'
+import type { CurrentRequestParams, CurrentResponse, CurrentValues } from '@/types/current.types'
+import type { HourlyValues } from '@/types/hourly.types'
+
+import type { Weather, WeekTemperatures } from '@/types/weather.types'
 
 const API_URL = 'https://api.open-meteo.com/v1/forecast'
 
@@ -16,12 +17,15 @@ const API_URL = 'https://api.open-meteo.com/v1/forecast'
  * @param params Weather parameters including latitude, longitude
  * @returns Promise with normalized weather data
  */
-export const getTemperatureForcast = async ({
+export const getWeekTemperature = async ({
   latitude,
   longitude,
-}: GetTemperatureForecastParams): Promise<TemperatureForecast> => {
+}: {
+  latitude: number
+  longitude: number
+}): Promise<WeekTemperatures> => {
   try {
-    const requestParams = {
+    const requestParams: WeekRequestParams = {
       latitude,
       longitude,
       timezone: 'auto',
@@ -29,19 +33,17 @@ export const getTemperatureForcast = async ({
       daily: 'temperature_2m_max',
     }
 
-    const response = await axios.get(API_URL, {
+    const response = await axios.get<WeekResponse>(API_URL, {
       params: requestParams,
     })
 
     const data = response.data
 
-    const dailyUnits = data.daily_units
-
     return {
-      dates: data.daily.time,
+      dates: data.daily.time.map((date) => dayjs(date).format('DD/MM')),
       temperatures: {
-        values: data.daily.temperature_2m_max,
-        unit: dailyUnits.temperature_2m_max,
+        values: data.daily.temperature_2m_max.map((temp) => Math.round(temp)),
+        unit: data.daily_units.temperature_2m_max,
       },
     }
   } catch (error) {
@@ -60,68 +62,78 @@ export const getTemperatureForcast = async ({
 export const getCurrentWeather = async ({
   latitude,
   longitude,
-}: GetCurrentWeatherParams): Promise<Weather> => {
+}: {
+  latitude: number
+  longitude: number
+}): Promise<Weather> => {
   try {
-    const requestParams = {
+    const requestParams: CurrentRequestParams = {
       latitude,
       longitude,
       timezone: 'auto',
       wind_speed_unit: 'ms',
-      current: [
-        'temperature_2m',
-        'apparent_temperature',
-        'wind_speed_10m',
-        'wind_gusts_10m',
-        'wind_direction_10m',
-        'relative_humidity_2m',
-        'surface_pressure',
-        'weather_code',
-        'is_day',
-        'rain',
-        'showers',
-        'snowfall',
-      ].join(','),
+      current: (
+        [
+          'temperature_2m',
+          'apparent_temperature',
+          'wind_speed_10m',
+          'wind_gusts_10m',
+          'wind_direction_10m',
+          'relative_humidity_2m',
+          'surface_pressure',
+          'weather_code',
+          'is_day',
+          'rain',
+          'showers',
+          'snowfall',
+        ] satisfies (keyof CurrentValues)[]
+      ).join(','),
     }
 
-    const response = await axios.get(API_URL, { params: requestParams })
+    const response = await axios.get<CurrentResponse>(API_URL, { params: requestParams })
     const data = response.data
-    const currentUnits = data.current_units
 
     return {
       date: data.current.time,
       temperature: {
-        detail: { value: data.current.temperature_2m, unit: currentUnits.temperature_2m },
+        detail: {
+          value: Math.round(data.current.temperature_2m),
+          unit: data.current_units.temperature_2m,
+        },
       },
       feels_like: {
         detail: {
-          value: data.current.apparent_temperature,
-          unit: currentUnits.apparent_temperature,
+          value: Math.round(data.current.apparent_temperature),
+          unit: data.current_units.apparent_temperature,
         },
       },
       wind_speed: {
-        detail: { value: data.current.wind_speed_10m, unit: currentUnits.wind_speed_10m },
+        detail: { value: data.current.wind_speed_10m, unit: data.current_units.wind_speed_10m },
       },
       wind_gust: {
-        detail: { value: data.current.wind_gusts_10m, unit: currentUnits.wind_gusts_10m },
+        detail: { value: data.current.wind_gusts_10m, unit: data.current_units.wind_gusts_10m },
       },
       wind_direction: {
-        detail: { value: data.current.wind_direction_10m, unit: currentUnits.wind_direction_10m },
+        detail: {
+          value: data.current.wind_direction_10m,
+          unit: data.current_units.wind_direction_10m,
+        },
       },
       humidity: {
         detail: {
           value: data.current.relative_humidity_2m,
-          unit: currentUnits.relative_humidity_2m,
+          unit: data.current_units.relative_humidity_2m,
         },
       },
       pressure: {
-        detail: { value: data.current.surface_pressure, unit: currentUnits.surface_pressure },
+        detail: { value: data.current.surface_pressure, unit: data.current_units.surface_pressure },
       },
       weather_code: data.current.weather_code,
       weather_description: getWeatherDescription(data.current.weather_code),
       is_day: !!data.current.is_day,
-      rain: { detail: { value: data.current.rain, unit: currentUnits.rain } },
-      showers: { detail: { value: data.current.showers, unit: currentUnits.showers } },
-      snowfall: { detail: { value: data.current.snowfall, unit: currentUnits.snowfall } },
+      rain: { detail: { value: data.current.rain, unit: data.current_units.rain } },
+      showers: { detail: { value: data.current.showers, unit: data.current_units.showers } },
+      snowfall: { detail: { value: data.current.snowfall, unit: data.current_units.snowfall } },
     }
   } catch (error) {
     console.error('Failed to fetch current weather:', error)
@@ -139,81 +151,93 @@ export const getDailyWeather = async ({
   latitude,
   longitude,
   date,
-}: GetDailyWeatherParams): Promise<Weather> => {
+}: {
+  latitude: number
+  longitude: number
+  date: string
+}): Promise<Weather> => {
   try {
-    const requestParams = {
+    const formattedDate = dayjs(date).format('YYYY-MM-DD')
+    const requestParams: DailyRequestParams = {
       latitude,
       longitude,
       timezone: 'auto',
       wind_speed_unit: 'ms',
-      daily: [
-        'temperature_2m_max',
-        'temperature_2m_min',
-        'apparent_temperature_max',
-        'apparent_temperature_min',
-        'wind_speed_10m_max',
-        'wind_gusts_10m_max',
-        'wind_direction_10m_dominant',
-        'relative_humidity_2m_max',
-        'surface_pressure_max',
-        'weather_code',
-        'rain_sum',
-        'showers_sum',
-        'snowfall_sum',
-      ].join(','),
-      start_date: date,
-      end_date: date,
+      hourly: (['temperature_2m', 'apparent_temperature'] satisfies (keyof HourlyValues)[]).join(
+        ',',
+      ),
+      daily: (
+        [
+          'wind_speed_10m_max',
+          'wind_gusts_10m_max',
+          'wind_direction_10m_dominant',
+          'relative_humidity_2m_max',
+          'surface_pressure_max',
+          'weather_code',
+          'rain_sum',
+          'showers_sum',
+          'snowfall_sum',
+        ] satisfies (keyof DailyValues)[]
+      ).join(','),
+      start_date: formattedDate,
+      end_date: formattedDate,
     }
 
-    const response = await axios.get(API_URL, { params: requestParams })
+    const response = await axios.get<DailyResponse>(API_URL, { params: requestParams })
     const data = response.data
-    const dailyUnits = data.daily_units
 
     return {
       date: data.daily.time[0],
       temperature: {
         detail: {
-          value: (data.daily.temperature_2m_max[0] + data.daily.temperature_2m_min[0]) / 2,
-          unit: dailyUnits.temperature_2m_max,
+          value: Math.round(getAvg(data.hourly.temperature_2m)),
+          unit: data.hourly_units.temperature_2m,
         },
       },
       feels_like: {
         detail: {
-          value:
-            (data.daily.apparent_temperature_max[0] + data.daily.apparent_temperature_min[0]) / 2,
-          unit: dailyUnits.apparent_temperature_max,
+          value: Math.round(getAvg(data.hourly.apparent_temperature)),
+          unit: data.hourly_units.apparent_temperature,
         },
       },
       wind_speed: {
-        detail: { value: data.daily.wind_speed_10m_max[0], unit: dailyUnits.wind_speed_10m_max },
+        detail: {
+          value: data.daily.wind_speed_10m_max[0],
+          unit: data.daily_units.wind_speed_10m_max,
+        },
       },
       wind_gust: {
-        detail: { value: data.daily.wind_gusts_10m_max[0], unit: dailyUnits.wind_gusts_10m_max },
+        detail: {
+          value: data.daily.wind_gusts_10m_max[0],
+          unit: data.daily_units.wind_gusts_10m_max,
+        },
       },
       wind_direction: {
         detail: {
           value: data.daily.wind_direction_10m_dominant[0],
-          unit: dailyUnits.wind_direction_10m_dominant,
+          unit: data.daily_units.wind_direction_10m_dominant,
         },
       },
       humidity: {
         detail: {
           value: data.daily.relative_humidity_2m_max[0],
-          unit: dailyUnits.relative_humidity_2m_max,
+          unit: data.daily_units.relative_humidity_2m_max,
         },
       },
       pressure: {
         detail: {
           value: data.daily.surface_pressure_max[0],
-          unit: dailyUnits.surface_pressure_max,
+          unit: data.daily_units.surface_pressure_max,
         },
       },
       weather_code: data.daily.weather_code[0],
       weather_description: getWeatherDescription(data.daily.weather_code[0]),
       is_day: true,
-      rain: { detail: { value: data.daily.rain_sum[0], unit: dailyUnits.rain_sum } },
-      showers: { detail: { value: data.daily.showers_sum[0], unit: dailyUnits.showers_sum } },
-      snowfall: { detail: { value: data.daily.snowfall_sum[0], unit: dailyUnits.snowfall_sum } },
+      rain: { detail: { value: data.daily.rain_sum[0], unit: data.daily_units.rain_sum } },
+      showers: { detail: { value: data.daily.showers_sum[0], unit: data.daily_units.showers_sum } },
+      snowfall: {
+        detail: { value: data.daily.snowfall_sum[0], unit: data.daily_units.snowfall_sum },
+      },
     }
   } catch (error) {
     console.error('Failed to fetch daily weather:', error)

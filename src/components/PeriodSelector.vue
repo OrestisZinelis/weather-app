@@ -1,12 +1,12 @@
 <template>
   <div class="flex flex-wrap justify-start items-center gap-2">
     <Button
-      :severity="selectedDate === 'now' ? 'primary' : 'secondary'"
+      :severity="selectedPeriod === 'now' ? 'primary' : 'secondary'"
       @click="handleDateSelected('now')"
       >Now</Button
     >
     <Button
-      :severity="selectedDate === 'today' ? 'primary' : 'secondary'"
+      :severity="selectedPeriod === 'today' ? 'primary' : 'secondary'"
       @click="handleDateSelected('today')"
       >Today</Button
     >
@@ -30,14 +30,14 @@ import { ref } from 'vue'
 import Button from 'primevue/button'
 import DatePicker from 'primevue/datepicker'
 import FloatLabel from 'primevue/floatlabel'
-import type { SelectedDate } from '@/types/selectedDate.types'
+import type { SelectedPeriod } from '@/types/selectedDate.types'
 
 defineProps<{
-  selectedDate: SelectedDate
+  selectedPeriod: SelectedPeriod
 }>()
 
 const emit = defineEmits<{
-  selectDate: [SelectedDate]
+  selectPeriod: [SelectedPeriod]
 }>()
 
 const date = ref<null | Date>(null)
@@ -45,9 +45,9 @@ const date = ref<null | Date>(null)
 const minDate = new Date()
 const maxDate = new Date(new Date().setDate(new Date().getDate() + 6))
 
-const handleDateSelected = (selectedDate: SelectedDate) => {
+const handleDateSelected = (selectedDate: SelectedPeriod) => {
   if (selectedDate === 'now' || selectedDate === 'today') date.value = null
-  emit('selectDate', selectedDate)
+  emit('selectPeriod', selectedDate)
 }
 </script>
 

@@ -1,21 +1,10 @@
-export interface GetTemperatureForecastParams {
-  latitude: number
-  longitude: number
-}
-export interface TemperatureForecast {
+export interface WeekTemperatures {
   dates: string[]
-  temperatures: ForeCastDetails
+  temperatures: WeekTemperaturesDetail
 }
-export interface ForeCastDetails {
+export interface WeekTemperaturesDetail {
   values: number[]
   unit: string
-}
-export interface GetCurrentWeatherParams {
-  latitude: number
-  longitude: number
-}
-export interface GetDailyWeatherParams extends GetCurrentWeatherParams {
-  date: string
 }
 
 type WeatherDetailId = 'feels_like' | 'wind' | 'wind_gust' | 'wind_deg' | 'humidity' | 'pressure'

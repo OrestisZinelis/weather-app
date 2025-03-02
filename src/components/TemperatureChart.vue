@@ -10,10 +10,10 @@ import { onMounted, ref } from 'vue'
 import Chart from 'primevue/chart'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 import { Chart as ChartJS } from 'chart.js'
-import type { TemperatureForecast } from '@/types/weather.types'
+import type { WeekTemperatures } from '@/types/weather.types'
 
 ChartJS.register(ChartDataLabels)
-const props = defineProps<{ data: TemperatureForecast }>()
+const props = defineProps<{ data: WeekTemperatures }>()
 
 onMounted(() => {
   chartData.value = setChartData()
