@@ -7,10 +7,10 @@
             <PeriodSelector :selectedPeriod="selectedPeriod" @select-period="handleSelectPeriod" />
             <CurrentWeather
               :temperature="weather.temperature.detail.value"
-              :description="weather.weather_description"
+              :description="weather.weatherDescription"
               :unit="weather.temperature.detail?.unit"
-              :weatherCode="weather.weather_code"
-              :is_day="weather.is_day"
+              :weatherCode="weather.weatherCode"
+              :isDay="weather.isDay"
             />
           </div>
 
@@ -53,7 +53,8 @@ import dayjs from 'dayjs'
 
 import { getCurrentWeather, getDailyWeather, getWeekTemperature } from '@/services/weather.api'
 
-import { useDebouncedLoading } from '@/composables/useDebouncedLoading'
+import useDebouncedLoading from '@/composables/useDebouncedLoading'
+import useWeatherTransform from '@/composables/useTransformWeatherData'
 
 import { locations } from '@/constants/locations'
 
@@ -72,17 +73,20 @@ onMounted(() => {
   fetchTemperatureForecast()
 })
 
+const { transformWeekTemperaturesData, transformCurrentWeatherData, transformDailyWeatherData } =
+  useWeatherTransform()
+
 const {
   showSpinner: showSpinnerWeather,
   startLoading: startLoadingWeather,
   stopLoading: stopLoadingWeather,
-} = useDebouncedLoading(300)
+} = useDebouncedLoading()
 
 const {
   showSpinner: showSpinnerTemperatureForecast,
   startLoading: startLoadingTemperatureForecast,
   stopLoading: stopLoadingTemperatureForecast,
-} = useDebouncedLoading(300)
+} = useDebouncedLoading()
 
 const selectedPeriod = ref<SelectedPeriod>('now')
 const weather = ref<Weather | null>(null)
@@ -92,10 +96,10 @@ const weatherDetailsToShow = computed<WeatherDetail[]>(() => {
   if (!weather.value) return []
 
   return [
-    { id: 'feels_like', text: 'Feels Like', detail: weather.value.feels_like.detail },
-    { id: 'wind', text: 'Wind', detail: weather.value.wind_speed.detail },
-    { id: 'wind_gust', text: 'Wind Gust', detail: weather.value.wind_gust.detail },
-    { id: 'wind_deg', text: 'Wind Deg', detail: weather.value.wind_direction.detail },
+    { id: 'feels_like', text: 'Feels Like', detail: weather.value.feelsLike.detail },
+    { id: 'wind', text: 'Wind', detail: weather.value.windSpeed.detail },
+    { id: 'wind_gust', text: 'Wind Gust', detail: weather.value.windGust.detail },
+    { id: 'wind_deg', text: 'Wind Deg', detail: weather.value.windDirection.detail },
     { id: 'humidity', text: 'Humidity', detail: weather.value.humidity.detail },
     { id: 'pressure', text: 'Pressure', detail: weather.value.pressure.detail },
   ]
@@ -126,11 +130,13 @@ const fetchWeather = async (date?: string) => {
   }
 
   try {
-    const data = date
-      ? await getDailyWeather({ ...position, date })
-      : await getCurrentWeather(position)
-
-    weather.value = data
+    if (date) {
+      const data = await getDailyWeather({ ...position, date })
+      weather.value = transformDailyWeatherData(data)
+    } else {
+      const data = await getCurrentWeather(position)
+      weather.value = transformCurrentWeatherData(data)
+    }
   } catch (error) {
     console.error('Failed to fetch weather:', error)
   } finally {
@@ -146,7 +152,7 @@ const fetchTemperatureForecast = async () => {
       longitude: locations.thessaloniki.longitude,
     })
 
-    weekTemperatures.value = data
+    weekTemperatures.value = transformWeekTemperaturesData(data)
   } catch (error) {
     console.error('Failed to fetch 7days temperature forecast:', error)
   } finally {

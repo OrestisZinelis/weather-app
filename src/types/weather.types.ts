@@ -20,15 +20,15 @@ export interface WeatherDetail {
 export interface Weather {
   date: string
   temperature: WeatherDetail
-  feels_like: WeatherDetail
-  wind_speed: WeatherDetail
-  wind_gust: WeatherDetail
-  wind_direction: WeatherDetail
+  feelsLike: WeatherDetail
+  windSpeed: WeatherDetail
+  windGust: WeatherDetail
+  windDirection: WeatherDetail
   humidity: WeatherDetail
   pressure: WeatherDetail
-  weather_code: number
-  weather_description: string
-  is_day: boolean
+  weatherCode: number
+  weatherDescription: string
+  isDay: boolean
   rain: WeatherDetail
   showers: WeatherDetail
   snowfall: WeatherDetail

@@ -7,7 +7,7 @@
     >
       <div class="flex items-end gap-1">
         <span class="text-2xl font-bold">{{ value }}</span>
-        <span :class="{ 'text-2xl': showBigUnit(id) }">{{ unit }}</span>
+        <span :class="{ 'text-2xl': showLargeUnit(id) }">{{ unit }}</span>
       </div>
       <p class="text-sm text-gray-400">{{ text }}</p>
     </div>
@@ -27,7 +27,5 @@ export type WeatherDetailId =
 
 defineProps<{ weatherDetails: WeatherDetail[] }>()
 
-const showBigUnit = (id?: WeatherDetailId) => {
-  return ['feels_like', 'wind_deg'].includes(id ?? '')
-}
+const showLargeUnit = (id?: WeatherDetailId) => ['feels_like', 'wind_deg'].includes(id ?? '')
 </script>

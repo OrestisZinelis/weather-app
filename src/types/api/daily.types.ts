@@ -1,4 +1,4 @@
-import type { HourlyValues, HourlyUnits } from '@/types/hourly.types'
+import type { HourlyValues, HourlyUnits } from '@/types/api/hourly.types'
 
 export interface DailyRequestParams {
   latitude: number

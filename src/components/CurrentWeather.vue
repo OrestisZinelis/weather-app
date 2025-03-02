@@ -17,12 +17,12 @@ import type { Weather } from '@/types/weather.types'
 const props = defineProps<{
   temperature: Weather['temperature']['detail']['value']
   unit: Weather['temperature']['detail']['unit']
-  description: Weather['weather_description']
-  weatherCode: Weather['weather_code']
-  is_day: boolean
+  description: Weather['weatherDescription']
+  weatherCode: Weather['weatherCode']
+  isDay: boolean
 }>()
 
-const weatherCodeToCodeMap: Record<Weather['weather_code'], Weather['weather_code']> = {
+const weatherCodeToCodeMap: Record<Weather['weatherCode'], Weather['weatherCode']> = {
   2: 1,
   3: 1,
   48: 45,
@@ -42,7 +42,7 @@ const weatherCodeToCodeMap: Record<Weather['weather_code'], Weather['weather_cod
 
 const imageSrc = computed(() => {
   const code = weatherCodeToCodeMap[props.weatherCode] ?? props.weatherCode
-  const suffix = props.is_day ? 'd' : 'n'
+  const suffix = props.isDay ? 'd' : 'n'
   return new URL(`../assets/wmo-svg/wmo_icon_${code}${suffix}.svg`, import.meta.url).href
 })
 </script>

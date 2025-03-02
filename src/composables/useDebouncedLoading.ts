@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-export function useDebouncedLoading(delay = 300) {
+export default function useDebouncedLoading(delay = 300) {
   const isLoading = ref(false)
   const showSpinner = ref(false)
   let timer: ReturnType<typeof setTimeout>
